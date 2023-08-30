@@ -22,7 +22,7 @@ all_crypto = gf.search_crypto()
 
 #-------------------------------------- GeckoFunctions -------------------------
 
-# print(all_crypto)
+#print(all_crypto)
 #print(gf.get_crypto_price('bitcoin', 'usd'))
 #print(gf.get_multi_crypto_price(['bitcoin','ethereum','tether'], 'usd'))
 #print(gf.get_current_attr(['bitcoin'], 'usd', True, True, True, True))
@@ -52,12 +52,12 @@ all_crypto = gf.search_crypto()
 #-------------------------------------- My_Functions --------------------------
 
 #mf.total_crypto_market_cap('usd',1,11)
-# print('Total number of cryptos right now are: ' + str(mf.total_number_of_cryptos()))
+#print('Total number of cryptos right now are: ' + str(mf.total_number_of_cryptos()))
 #mf.list_of_cryptos()
-# print('Total number of cryptos right now are: ' + str(mf.total_number_of_exchanges()))
-# mf.list_of_exchanges()
-# mf.select_single_crypto(0)
-# print(mf.get_current_attr_mf(['bitcoin'], 'usd', True, True, True, True))
+#print('Total number of crypto exchanges are: ' + str(mf.total_number_of_exchanges()))
+#mf.list_of_exchanges()
+#mf.select_single_crypto(0)
+#print(mf.get_current_attr_mf(['bitcoin'], 'usd', True, True, True, True))
 #mf.crypto_price_percentage_change_24h('usd',1,11)
 #mf.biggest_gainers_24h('usd',1,11)
 #mf.biggest_losers_24h('usd',1,11)
@@ -73,7 +73,7 @@ all_crypto = gf.search_crypto()
 
 #-------------------------------------- My_Visualization -----------------------
 
-mv.plotGraph()
+#mv.plotGraph()
 
 
 

@@ -211,14 +211,6 @@ last_updated
 
 Use code below to find crypto whos 24h price percentage change is above 10% from pages 1 - 7 in CoinGecko
 
-for i in range(1,7):
-    data_page = gf.coin_market('usd',i)
-    for j in data_page:
-        if j['price_change_percentage_24h'] == None:
-            continue
-        elif j['price_change_percentage_24h'] >= 10.0:
-            print(f"{j['name']:20s} {str(j['market_cap_rank']):20s} {str(j['price_change_percentage_24h']):20s}")
-
 ===========================================================Structure of         a = gf.spot_data('bitcoin')
 
 returns:
