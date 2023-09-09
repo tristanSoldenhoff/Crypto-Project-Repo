@@ -73,7 +73,7 @@ all_crypto = gf.search_crypto()
 
 #-------------------------------------- My_Visualization -----------------------
 
-#mv.plotGraph()
+mv.plotGraph()
 
 
 
