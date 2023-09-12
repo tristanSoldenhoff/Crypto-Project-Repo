@@ -12,7 +12,8 @@ from my_functions import MyFunctions
 from gecko_functions import GeckoFunctions
 from data_processing_functions import DataProcessingFunctions
 import matplotlib.pyplot as plt
-import matplotlib.dates as mpl_dates
+#import matplotlib.dates as mpl_dates
+import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import pandas as pd
@@ -216,28 +217,39 @@ class Gui(customtkinter.CTk, GeckoFunctions):
 # ytick.minor.width: 0.6
 # ytick.right: False
 
-
         print(plt.rcParams)
 
         # set plot theme for matplotlib
         with plt.rc_context({
-                            'figure.facecolor':'#2B2B2B',
-                            'axes.facecolor':'#2B2B2B',
-                            'xtick.color':'white',
-                            'ytick.color':'white',
-                            'axes.titlecolor':'white',
-                            'axes.labelcolor':'white',
-                            'axes.edgecolor':'#333333',
-                            'grid.color':'#333333',
-                            'axes.titlelocation':'left',
-                            'text.color': 'white',
-                            }):
+                            # 'figure.facecolor':'#2B2B2B',
+                            # 'axes.facecolor':'#2B2B2B',
+                            # 'xtick.color':'white',
+                            # 'ytick.color':'white',
+                            # 'axes.titlecolor':'white',
+                            # 'axes.labelcolor':'white',
+                            # 'axes.edgecolor':'#333333',
+                            # 'grid.color':'#333333',
+                            # 'axes.titlelocation':'left',
+                            # 'text.color': 'white',
+                            'axes.labelpad': '8.0',
+                            'font.size': '10.0',
+                            'axes.xmargin': '0.1',
+                            'axes.ymargin': '0.1',
+                            'grid.linewidth': '1.5',
+                            'axes.linewidth': '1.5',
+                            'xtick.major.width': '1.5',
+                            'xtick.major.size': '4.0',
+                            'xtick.minor.width': '1.0',
+                            'xtick.minor.size': '2.0',
+                            'ytick.major.width': '1.5',
+                            'ytick.major.size': '4.0',
 
+                            }):
 
             # create embedded matplotlib graph - graph_frame <- canvas <- fig <- ax
             fig, ax = plt.subplots()
             canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
-            self.plotGraph(canvas, ax, self.gf, fig, self.mf)
+            self.plotGraph(ax, fig, canvas, self.gf, self.dpf)
 
         # select default frame
         self.select_frame_by_name("home")
@@ -271,43 +283,30 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         for i in list:
             self.treeview.insert('', tk.END, values=i)
 
-    def plotGraph(self, canvas, ax, gf, fig, mf):
+    def plotGraph(self, ax, fig, canvas, gf, dpf):
         data = gf.get_coin_data_days('bitcoin', 'usd', 10000)
-        time = []
-        price = []
+        human_time, price = ([] for i in range(2))
         for i in data['prices']:
-            time.append(i[0])
+            human_time.append(dpf.human_time(i[0]))
             price.append(i[1])
-
         ax.title.set_text('Bitcoin')
-        ax.set_xlabel('Date')
-        ax.set_ylabel('USD')
-        ax.set_yscale('log')
+        ax.set_ylabel(r'Price [\$]')
+
+        ax.plot(human_time, price)
+        #ax.set_yscale('log')
         ax.grid(visible=True, which='major', axis='both')
 
-        # for i in time:
-        #     print(mf.human_time(i))
+        # Major ticks every half year, minor ticks every month,
+        ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1)))
+        ax.xaxis.set_minor_locator(mdates.MonthLocator())
 
-        #ax.plot(mf.human_time(time), price)
-        ax.plot(time, price)
+        ax.set_title('Manual DateFormatter', loc='left', y=0.85, x=0.02, fontsize='medium')
+
+        # Text in the x-axis will be displayed in 'YYYY' format.
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-#fig, ax = plt.subplots()
-#idx = pd.date_range('2013-12-07', '2023-01-09', freq='M')
-# # generate a time range series with 10 min intervals
-# idx = np.arange('2018-01-07T00', '2018-01-09T02', 10, dtype='datetime64[m]')
-# # some random data
-# y = np.sin(np.arange(idx.shape[0]) / 0.01)
-#
-# ax.plot_date(idx, y, '-')
-#
-# ax.xaxis.set_minor_locator(dates.HourLocator(interval=4))   # every 4 hours
-# ax.xaxis.set_minor_formatter(dates.DateFormatter('%H:%M'))  # hours and minutes
-# ax.xaxis.set_major_locator(dates.DayLocator(interval=1))    # every day
-# ax.xaxis.set_major_formatter(dates.DateFormatter('\n%d-%m-%Y'))
-
-
 
     def on_closing_event(self):
         print('on_closing_event ___________ destroyed self.window and initial window')
