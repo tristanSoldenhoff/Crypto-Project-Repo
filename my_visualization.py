@@ -17,7 +17,7 @@ class MyVisualization(MyFunctions):
             time.append(i[0])
             price.append(i[1])
 
-        
+
         plt.yscale('log')
         plt.plot(time, price)
         plt.show()

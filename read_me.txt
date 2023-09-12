@@ -16,4 +16,6 @@ gecko_functions.py
 
 pip installs:
 =============
+pip install pycoingecko
 pip install customtkinter
+
