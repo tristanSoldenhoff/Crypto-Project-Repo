@@ -1,0 +1,2 @@
+how to open jupyter notebook in cmd:
+python -m notebook

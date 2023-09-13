@@ -12,16 +12,23 @@ from my_functions import MyFunctions
 from gecko_functions import GeckoFunctions
 from data_processing_functions import DataProcessingFunctions
 import matplotlib.pyplot as plt
-#import matplotlib.dates as mpl_dates
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import pandas as pd
 import numpy as nps
 
+class ToplevelGraphToolBar(customtkinter.CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("400x300")
+
+        self.label = customtkinter.CTkLabel(self, text="ToplevelWindow")
+        self.label.pack(padx=20, pady=20)
+
 class Gui(customtkinter.CTk, GeckoFunctions):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # accessing crypto data
         self.gf = GeckoFunctions()
@@ -251,6 +258,8 @@ class Gui(customtkinter.CTk, GeckoFunctions):
             canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
             self.plotGraph(ax, fig, canvas, self.gf, self.dpf)
 
+        self.toplevel_toolbar_window = None
+
         # select default frame
         self.select_frame_by_name("home")
 
@@ -267,6 +276,7 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         if name == "graph":
             self.back_frame.grid(row=0, column=1, padx=(0,15), pady=15, sticky="nsew")
             self.graph_frame.grid(row=0, column=0, padx=4, pady=4, sticky="nsew")
+            self.open_toplevel_graph_toolbar()
         else:
             self.back_frame.grid_forget()
             self.graph_frame.grid_forget()
@@ -307,6 +317,15 @@ class Gui(customtkinter.CTk, GeckoFunctions):
 
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+
+    def open_toplevel_graph_toolbar(self):
+        if self.toplevel_toolbar_window is None or not self.toplevel_toolbar_window.winfo_exists():
+            self.toplevel_toolbar_window = ToplevelGraphToolBar(self)  # create window if its None or destroyed
+        else:
+            self.toplevel_toolbar_window.focus()  # if window exists focus it
+
+
 
     def on_closing_event(self):
         print('on_closing_event ___________ destroyed self.window and initial window')
