@@ -18,14 +18,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 import numpy as nps
 
-class ToplevelGraphToolBar(customtkinter.CTkToplevel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.geometry("400x300")
-
-        self.label = customtkinter.CTkLabel(self, text="ToplevelWindow")
-        self.label.pack(padx=20, pady=20)
-
 class Gui(customtkinter.CTk, GeckoFunctions):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -42,8 +34,8 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.iconify()
 
         # window
-        self.title('initial window i would like to close')
-        self.geometry('800x600')
+        # self.title('initial window i would like to close')
+        # self.geometry('800x600')
         self.window = tk.Tk()
         self.window.title('Crypto Project')
         self.window.geometry('1000x600')
@@ -124,107 +116,7 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.graph_frame.grid_columnconfigure(0, weight=1)
         self.graph_frame.grid_rowconfigure(0, weight=1)
 
-
-# axes.labelpad: 4.0
-# axes.labelsize: medium
-# axes.labelweight: normal
-# axes.linewidth: 0.8
-# axes.titlecolor: auto
-# axes.titlelocation: center
-# axes.titlepad: 6.0
-# axes.titlesize: large
-# axes.titleweight: normal
-# axes.titley: None
-# axes.xmargin: 0.05
-# axes.ymargin: 0.05
-# axes.zmargin: 0.05
-# figure.edgecolor: white
-# figure.facecolor: white
-# figure.figsize: [6.4, 4.8]
-# figure.labelsize: large
-# figure.labelweight: normal
-# figure.titlesize: large
-# figure.titleweight: normal
-# font.size: 10.0
-# font.style: normal
-# font.variant: normal
-# font.weight: normal
-# grid.alpha: 1.0
-# grid.color: #b0b0b0
-# grid.linestyle: -
-# grid.linewidth: 0.8
-# lines.antialiased: True
-# lines.color: C0
-# lines.dash_capstyle: butt
-# lines.dash_joinstyle: round
-# lines.dashdot_pattern: [6.4, 1.6, 1.0, 1.6]
-# lines.dashed_pattern: [3.7, 1.6]
-# lines.dotted_pattern: [1.0, 1.65]
-# lines.linestyle: -
-# lines.linewidth: 1.5
-# lines.marker: None
-# lines.markeredgecolor: auto
-# lines.markeredgewidth: 1.0
-# lines.markerfacecolor: auto
-# lines.markersize: 6.0
-# lines.scale_dashes: True
-# lines.solid_capstyle: projecting
-# lines.solid_joinstyle: round
-# text.antialiased: True
-# text.color: black
-# text.hinting: force_autohint
-# text.hinting_factor: 8
-# text.kerning_factor: 0
-# text.latex.preamble:
-# text.parse_math: True
-# text.usetex: False
-# timezone: UTC
-# tk.window_focus: False
-# toolbar: toolbar2
-# xaxis.labellocation: center
-# xtick.alignment: center
-# xtick.bottom: True
-# xtick.color: black
-# xtick.direction: out
-# xtick.labelbottom: True
-# xtick.labelcolor: inherit
-# xtick.labelsize: medium
-# xtick.labeltop: False
-# xtick.major.bottom: True
-# xtick.major.pad: 3.5
-# xtick.major.size: 3.5
-# xtick.major.top: True
-# xtick.major.width: 0.8
-# xtick.minor.bottom: True
-# xtick.minor.pad: 3.4
-# xtick.minor.size: 2.0
-# xtick.minor.top: True
-# xtick.minor.visible: False
-# xtick.minor.width: 0.6
-# xtick.top: False
-# yaxis.labellocation: center
-# ytick.alignment: center_baseline
-# ytick.color: black
-# ytick.direction: out
-# ytick.labelcolor: inherit
-# ytick.labelleft: True
-# ytick.labelright: False
-# ytick.labelsize: medium
-# ytick.left: True
-# ytick.major.left: True
-# ytick.major.pad: 3.5
-# ytick.major.right: True
-# ytick.major.size: 3.5
-# ytick.major.width: 0.8
-# ytick.minor.left: True
-# ytick.minor.pad: 3.4
-# ytick.minor.right: True
-# ytick.minor.size: 2.0
-# ytick.minor.visible: False
-# ytick.minor.width: 0.6
-# ytick.right: False
-
-        print(plt.rcParams)
+        #print(plt.rcParams)
 
         # set plot theme for matplotlib
         with plt.rc_context({
@@ -268,7 +160,7 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.home_button.configure(fg_color=("gray75", "gray25") if name == "home" else "transparent")
         self.graph_button.configure(fg_color=("gray75", "gray25") if name == "graph" else "transparent")
 
-        # show selected frame
+        # show selected frame or frame and toplevel window
         if name == "home":
             self.home_frame.grid(row=0, column=1, padx=(0,15), pady=10, sticky="news")
         else:
@@ -325,14 +217,49 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         else:
             self.toplevel_toolbar_window.focus()  # if window exists focus it
 
-
-
     def on_closing_event(self):
         print('on_closing_event ___________ destroyed self.window and initial window')
         self.window.destroy()
         self.destroy()
         exit()
         # "1968159393536check_dpi_scaling" on cmd after closing. This message was displayed when matplotlib graph was embedded.
+
+class ToplevelGraphToolBar(customtkinter.CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # configure grid
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(8, weight=1)
+
+        self.geometry("400x300")
+        self.title('Toolbar')
+
+        self.toolbar_frame = customtkinter.CTkLabel(master=self)
+        self.toolbar_frame.grid(row=0, column=0, sticky='news')
+
+        self.toolbarLabel = customtkinter.CTkLabel(self.toolbar_frame, text='Toolbar', anchor='center',
+                                        font=customtkinter.CTkFont(size=25, weight='bold'))
+        self.toolbarLabel.grid(row=0, column=0, sticky='news')
+
+        self.switch_var_yscale_on = customtkinter.StringVar(value="on")
+        self.switch_var_yscale_off = customtkinter.StringVar(value="off")
+        self.switch_yscale = customtkinter.CTkSwitch(master=self.toolbar_frame, text="Log", command=self.switch_yscale_event,
+                        variable=self.switch_var_yscale_on, onvalue="on", offvalue="off")
+        self.switch_yscale.grid(row=0, column=1, sticky='news')
+
+
+
+
+    def switch_yscale_event(self):
+        #print(self.switch_var_yscale_on.get())
+        if self.switch_var_yscale_on.get() == 'on':
+            print('switch is on')
+        elif self.switch_var_yscale_off.get() == 'off':
+            print('switch if off')
+
+
 
 if __name__ == "__main__":
     gui = Gui()
