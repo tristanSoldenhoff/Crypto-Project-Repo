@@ -34,8 +34,6 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.iconify()
 
         # window
-        # self.title('initial window i would like to close')
-        # self.geometry('800x600')
         self.window = tk.Tk()
         self.window.title('Crypto Project')
         self.window.geometry('1000x600')
@@ -50,7 +48,6 @@ class Gui(customtkinter.CTk, GeckoFunctions):
 
         # create navigation frame
         self.navigation_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8)
-        # self.navigation_frame.grid(row=0, column=0, padx=15, pady=15, sticky='news')
         self.navigation_frame.grid(row=0, column=0, padx=15, pady=15, sticky='news')
         self.navigation_frame.grid_columnconfigure(0, weight=1)
         self.navigation_frame.grid_rowconfigure(10, weight=1)
@@ -67,8 +64,9 @@ class Gui(customtkinter.CTk, GeckoFunctions):
                             text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), command=self.graph_button_event)
         self.graph_button.grid(row=2, column=0, sticky="ew")
 
-        # create home frame
-        self.home_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color=('gray70', 'gray10'))
+        # create home frame             home_frame <- tree_frame <- tree_scroll + tree_view
+        # self.home_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color=('gray70', 'gray10'))
+        self.home_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color=('gray70', 'gray17'))
         self.home_frame.grid(row=0, column=1, padx=(0,15), pady=10, sticky="news")
         self.home_frame.grid_columnconfigure(0, weight=1)
         self.home_frame.grid_rowconfigure(0, weight=1)
@@ -77,7 +75,7 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.tree_frame = customtkinter.CTkFrame(master=self.home_frame, corner_radius=8)
         self.tree_frame.grid_columnconfigure(0, weight=1)
         self.tree_frame.grid_rowconfigure(0, weight=1)
-        self.tree_frame.grid(row=0, column=0, padx=5, pady=5, sticky="news")
+        self.tree_frame.grid(row=0, column=0, padx=5, pady=5)
 
         self.treeScroll = ttk.Scrollbar(self.tree_frame)
         self.treeScroll.pack(side='right', fill='y')
@@ -106,7 +104,7 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.treeScroll.config(command=self.treeview.yview)
         self.load_data()
 
-        # create background frame to host graph_frame - this allows for corner_radius to be applied
+        # create background frame to host chart_frame - this allows for corner_radius to be applied
         self.back_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color='#2B2B2B')
         self.back_frame.grid_columnconfigure(0, weight=1)
         self.back_frame.grid_rowconfigure(0, weight=1)
@@ -146,9 +144,9 @@ class Gui(customtkinter.CTk, GeckoFunctions):
                             }):
 
             # create embedded matplotlib graph - graph_frame <- canvas <- fig <- ax
-            fig, ax = plt.subplots()
-            canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
-            self.plotGraph(ax, fig, canvas, self.gf, self.dpf)
+            self.fig, self.ax = plt.subplots()
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self.graph_frame)
+            self.plotGraph(self.ax, self.fig, self.canvas, self.gf, self.dpf)
 
         self.toplevel_toolbar_window = None
 
@@ -191,24 +189,24 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         for i in data['prices']:
             human_time.append(dpf.human_time(i[0]))
             price.append(i[1])
-        ax.title.set_text('Bitcoin')
-        ax.set_ylabel(r'Price [\$]')
+        self.ax.title.set_text('Bitcoin')
+        self.ax.set_ylabel(r'Price [\$]')
 
-        ax.plot(human_time, price)
+        self.ax.plot(human_time, price)
         #ax.set_yscale('log')
-        ax.grid(visible=True, which='major', axis='both')
+        self.ax.grid(visible=True, which='major', axis='both')
 
         # Major ticks every half year, minor ticks every month,
-        ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1)))
-        ax.xaxis.set_minor_locator(mdates.MonthLocator())
+        self.ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1)))
+        self.ax.xaxis.set_minor_locator(mdates.MonthLocator())
 
-        ax.set_title('Manual DateFormatter', loc='left', y=0.85, x=0.02, fontsize='medium')
+        self.ax.set_title('Manual DateFormatter', loc='left', y=0.85, x=0.02, fontsize='medium')
 
         # Text in the x-axis will be displayed in 'YYYY' format.
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
 
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
 
     def open_toplevel_graph_toolbar(self):
@@ -253,9 +251,9 @@ class ToplevelGraphToolBar(customtkinter.CTkToplevel):
 
 
     def switch_yscale_event(self):
-        #print(self.switch_var_yscale_on.get())
         if self.switch_var_yscale_on.get() == 'on':
             print('switch is on')
+            self.ax.set_yscale('log')
         elif self.switch_var_yscale_off.get() == 'off':
             print('switch if off')
 
