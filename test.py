@@ -42,10 +42,10 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.window.state('zoomed')
         customtkinter.set_appearance_mode('Dark')
 
-        # configure grid 1x2
-        self.window.grid_columnconfigure(0, weight=1)
+        # configure grid 2x2
+        self.window.grid_columnconfigure(0, weight=0)
         self.window.grid_columnconfigure(1, weight=8)
-        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_rowconfigure(0, weight=0)
         self.window.grid_rowconfigure(1, weight=5)
 
         # create navigation frame
@@ -74,7 +74,7 @@ class Gui(customtkinter.CTk, GeckoFunctions):
                                         font=customtkinter.CTkFont(size=25, weight='bold'))
         self.toolbar_frame_label.grid(row=0, column=0, padx=20, pady=20, sticky='news')
 
-        # create home frame which hosts:     tree_frame or chart_frame
+        # create home frame which hosts:    window <-- home_frame <-- tree_frame OR chart_frame
         self.home_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color=('gray70', 'gray17'))
         self.home_frame.grid(row=0, column=1, rowspan=2, padx=(7.5 ,15), pady=15, sticky="news")
         self.home_frame.grid_columnconfigure(0, weight=1)
@@ -84,7 +84,7 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.tree_frame = TreeFrame(master=self.home_frame, dpf=self.dpf)
 
         # create price chart and modify navigation_frame
-        self.chart_frame = Chart(master=self.home_frame)
+        self.chart_frame = ChartFrame(master=self.home_frame, dpf=self.dpf, gf=self.gf)
 
         # select default frame
         self.select_frame_by_name("treeview")
@@ -97,15 +97,17 @@ class Gui(customtkinter.CTk, GeckoFunctions):
 
         if name == 'treeview':
             self.navigation_frame.grid(row=0, column=0, rowspan=2, padx=(15, 7.5), pady=15, sticky='news')
-            self.tree_frame.show_treeview(True)
+            self.tree_frame.grid(row=0, column=0, padx=(7.5 ,15), pady=15)
         else:
             self.navigation_frame.grid_forget()
-            self.tree_frame.show_treeview(False)
+            self.tree_frame.grid_forget()
         if name == 'chart':
             self.navigation_frame.grid(row=0, column=0, padx=(15, 7.5), pady=(15, 7.5), sticky='news')
             self.toolbar_frame.grid(row=1, column=0, padx=(15, 7.5), pady=(7.5, 15), sticky='news')
+            self.chart_frame.grid(row=0, column=0, padx=5, pady=5, sticky='news')
         else:
             self.toolbar_frame.grid_forget()
+            self.chart_frame.grid_forget()
 
     def treeview_button_event(self):
         self.select_frame_by_name("treeview")
@@ -117,24 +119,19 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         exit()
 
 
-class TreeFrame():
-    def __init__(self, master, dpf):
+class TreeFrame(customtkinter.CTkFrame):
+    def __init__(self, master, dpf, **kwargs):
+        super().__init__(master, **kwargs)
 
         self.dpf = dpf
-        self.master = master
-
-        # background_frame <-- treeview + tree_scroll
-        self.background_frame = customtkinter.CTkFrame(master=self.master, corner_radius=8, fg_color=('gray70', 'gray17'))
-        self.background_frame.grid_columnconfigure(0, weight=1)
-        self.background_frame.grid_rowconfigure(0, weight=1)
 
         #  create scroll bar
-        self.tree_scroll = ttk.Scrollbar(master=self.background_frame)
+        self.tree_scroll = ttk.Scrollbar(master=self)
         self.tree_scroll.pack(side='right', fill='y')
 
         # create treeview and set up treeview columns and theme
         self.cols = ('Rank', 'ID', 'Symbol', 'Market Cap', 'Total Volume', '24h', 'Price' )
-        self.treeview = ttk.Treeview(master=self.background_frame, show='headings', yscrollcommand=self.tree_scroll.set, columns=self.cols, height=100)
+        self.treeview = ttk.Treeview(master=self, show='headings', yscrollcommand=self.tree_scroll.set, columns=self.cols, height=100)
         self.tree_scroll.config(command=self.treeview.yview)
         self.set_tree_frame_theme(self.treeview)
         self.set_treeview_data(self.treeview)
@@ -167,16 +164,65 @@ class TreeFrame():
         for i in list:
             self.treeview.insert('', tk.END, values=i)
 
-    def show_treeview(self, boolean):
-        if boolean == True:
-            self.background_frame.grid(row=0, column=0, padx=(7.5 ,15), pady=15)
-        else:
-            self.background_frame.grid_forget()
+
+class ChartFrame(customtkinter.CTkFrame):
+    def __init__(self, master, dpf, gf, **kwargs):
+        super().__init__(master, **kwargs)
+
+        #print(plt.rcParams)
+
+        # set plot theme for matplotlib
+        with plt.rc_context({
+                            'axes.labelpad': '8.0',
+                            'font.size': '10.0',
+                            'axes.xmargin': '0.1',
+                            'axes.ymargin': '0.1',
+                            'grid.linewidth': '1.5',
+                            'grid.color': '#F7F7F7',
+                            'axes.linewidth': '1.5',
+                            'xtick.major.width': '1.5',
+                            'xtick.major.size': '4.0',
+                            'xtick.minor.width': '1.0',
+                            'xtick.minor.size': '2.0',
+                            'ytick.major.width': '1.5',
+                            'ytick.major.size': '4.0',
+                            }):
+
+            self.dpf = dpf
+            self.gf = gf
+
+            # create embedded matplotlib graph - window <-- home_frame <-- self <- canvas <- fig <- ax
+            self.fig, self.ax = plt.subplots()
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+            self.plotGraph(self.ax, self.fig, self.canvas, self.dpf, self.gf)
+
+    # def plotGraph(self, ax, fig, canvas, gf, dpf):
+    def plotGraph(self, ax, fig, canvas, dpf, gf):
+        data = gf.get_coin_data_days('bitcoin', 'usd', 10000)
+        human_time, price = ([] for i in range(2))
+        for i in data['prices']:
+            human_time.append(dpf.human_time(i[0]))
+            price.append(i[1])
+        self.ax.title.set_text('Bitcoin')
+        self.ax.set_ylabel(r'Price [\$]')
+
+        self.ax.plot(human_time, price)
+        #ax.set_yscale('log')
+        self.ax.grid(visible=True, which='major', axis='both')
+
+        # Major ticks every half year, minor ticks every month,
+        self.ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1)))
+        self.ax.xaxis.set_minor_locator(mdates.MonthLocator())
+
+        self.ax.set_title('Manual DateFormatter', loc='left', y=0.85, x=0.02, fontsize='medium')
+
+        # Text in the x-axis will be displayed in 'YYYY' format.
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
 
-class Chart():
-    def __init__(self, master):
-        pass
 
 if __name__ == "__main__":
     gui = Gui()
