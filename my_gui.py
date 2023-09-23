@@ -2,6 +2,9 @@
  Customtkinter documentation:  https://customtkinter.tomschimansky.com/documentation/widgets/button
  Appearance: customtkinter
  forest-ttk-theme     (used for treeview table)
+
+passing data from multiple windows: will help with navigation frame:
+ https://www.youtube.com/watch?v=wHeoWM4xv0U&ab_channel=CodersLegacy
 """
 
 import tkinter as tk
@@ -18,7 +21,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 import numpy as nps
 
-class Gui(customtkinter.CTk, GeckoFunctions):
+
+class App(customtkinter.CTk, GeckoFunctions):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -41,53 +45,124 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.window.state('zoomed')
         customtkinter.set_appearance_mode('Dark')
 
-        # configure grid
-        self.window.grid_columnconfigure(0, weight=1)
-        self.window.grid_columnconfigure(1, weight=5)
-        self.window.grid_rowconfigure(0, weight=1)
+        # configure grid 2x2
+        self.window.grid_columnconfigure(0, weight=0)
+        self.window.grid_columnconfigure(1, weight=8)
+        self.window.grid_rowconfigure(0, weight=0)
+        self.window.grid_rowconfigure(1, weight=5)
 
         # create navigation frame
-        self.navigation_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8)
-        self.navigation_frame.grid(row=0, column=0, padx=15, pady=15, sticky='news')
-        self.navigation_frame.grid_columnconfigure(0, weight=1)
-        self.navigation_frame.grid_rowconfigure(10, weight=1)
+        self.navigation_frame = NavigationFrame(master=self.window, select_frame_by_name=self.select_frame_by_name)
 
-        self.navigation_frame_label_0 = customtkinter.CTkLabel(self.navigation_frame, text='Navigation Bar', anchor='center',
-                                        font=customtkinter.CTkFont(size=25, weight='bold'))
-        self.navigation_frame_label_0.grid(row=0, column=0, padx=20, pady=20, sticky='news')
+        # create toolbar frame
+        self.toolbar_frame = ToolBarFrame(master=self.window)
 
-        self.home_button = customtkinter.CTkButton(self.navigation_frame, corner_radius=0, height=40, text="Home", fg_color="transparent",
-                            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), command=self.home_button_event)
-        self.home_button.grid(row=1, column=0, sticky="ew")
-
-        self.graph_button = customtkinter.CTkButton(self.navigation_frame, corner_radius=0, height=40, text="Graphs", fg_color="transparent",
-                            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), command=self.graph_button_event)
-        self.graph_button.grid(row=2, column=0, sticky="ew")
-
-        # create home frame             home_frame <- tree_frame <- tree_scroll + tree_view
-        # self.home_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color=('gray70', 'gray10'))
+        # create home frame:    window <-- home_frame <-- tree_frame OR chart_frame
         self.home_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color=('gray70', 'gray17'))
-        self.home_frame.grid(row=0, column=1, padx=(0,15), pady=10, sticky="news")
+        self.home_frame.grid(row=0, column=1, rowspan=2, padx=(7.5 ,15), pady=15, sticky="news")
         self.home_frame.grid_columnconfigure(0, weight=1)
         self.home_frame.grid_rowconfigure(0, weight=1)
 
-        # create tree frame
-        self.tree_frame = customtkinter.CTkFrame(master=self.home_frame, corner_radius=8)
-        self.tree_frame.grid_columnconfigure(0, weight=1)
-        self.tree_frame.grid_rowconfigure(0, weight=1)
-        self.tree_frame.grid(row=0, column=0, padx=5, pady=5)
+        # create treeview:  home_frame <-- treeview + tree_scroll
+        self.tree_frame = TreeFrame(master=self.home_frame, dpf=self.dpf)
 
-        self.treeScroll = ttk.Scrollbar(self.tree_frame)
-        self.treeScroll.pack(side='right', fill='y')
+        # create price chart:  home_frame <-- chart_frame
+        self.chart_frame = ChartFrame(master=self.home_frame, dpf=self.dpf, gf=self.gf)
 
-        # apply Azure theme to tree_frame
-        style = ttk.Style(self.tree_frame)
-        self.tree_frame.tk.call('source', 'Azure/azure.tcl')
-        self.tree_frame.tk.call('set_theme', 'dark')
+        # select default frame
+        self.select_frame_by_name("treeview", self.navigation_frame)
 
-        # set up column and data into treeview
-        cols = ('Rank', 'ID', 'Symbol', 'Market Cap', 'Total Volume', '24h', 'Price' )
-        self.treeview = ttk.Treeview(self.tree_frame, show='headings', yscrollcommand=self.treeScroll.set, columns=cols, height=100)
+    # show navigation_frame + treeview  OR  navigation_frame + toolbar_frame + chart_frame
+    def select_frame_by_name(self, name, *args):
+
+        # set button color for selected button
+        navigation_frame = args[0]
+        navigation_frame.treeview_button.configure(fg_color=("gray75", "gray25") if name == "treeview" else "transparent")
+        navigation_frame.chart_button.configure(fg_color=("gray75", "gray25") if name == "chart" else "transparent")
+
+        if name == 'treeview':
+            self.navigation_frame.grid(row=0, column=0, rowspan=2, padx=(15, 7.5), pady=15, sticky='news')
+            self.tree_frame.grid(row=0, column=0, padx=(7.5 ,15), pady=15)
+        else:
+            self.navigation_frame.grid_forget()
+            self.tree_frame.grid_forget()
+        if name == 'chart':
+            self.navigation_frame.grid(row=0, column=0, padx=(15, 7.5), pady=15, sticky='news')
+            self.toolbar_frame.grid(row=1, column=0, padx=(15, 7.5), pady=(7.5, 15), sticky='news')
+            self.chart_frame.grid(row=0, column=0, padx=0, pady=0, sticky='news')
+        else:
+            self.toolbar_frame.grid_forget()
+            self.chart_frame.grid_forget()
+
+    def on_closing_event(self):
+        exit()
+
+class NavigationFrame(customtkinter.CTkFrame):
+    def __init__(self, master, select_frame_by_name, **kwargs):
+        super().__init__(master, **kwargs)
+
+        self.select_frame_by_name = select_frame_by_name
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(10, weight=1)
+
+        self.navigation_frame_label = customtkinter.CTkLabel(self, text='Navigation Bar', anchor='center',
+                                        font=customtkinter.CTkFont(size=25, weight='bold'))
+        self.navigation_frame_label.grid(row=0, column=0, padx=20, pady=20, sticky='news')
+
+        self.treeview_button = customtkinter.CTkButton(self, corner_radius=0, height=40, text="Treeview", fg_color="transparent",
+                            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), command=self.treeview_button_event)
+        self.treeview_button.grid(row=1, column=0, sticky="ew")
+
+        self.chart_button = customtkinter.CTkButton(self, corner_radius=0, height=40, text="Chart", fg_color="transparent",
+                            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), command=self.chart_button_event)
+        self.chart_button.grid(row=2, column=0, sticky="ew")
+
+    def treeview_button_event(self):
+        self.select_frame_by_name("treeview", self)
+
+    def chart_button_event(self):
+        self.select_frame_by_name("chart", self)
+
+
+class ToolBarFrame(customtkinter.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(10, weight=1)
+
+        self.toolbar_frame_label = customtkinter.CTkLabel(self, text='Toolbar', anchor='center',
+                                        font=customtkinter.CTkFont(size=25, weight='bold'))
+        self.toolbar_frame_label.grid(row=0, column=0, padx=20, pady=20, sticky='news')
+
+
+class TreeFrame(customtkinter.CTkFrame):
+    def __init__(self, master, dpf, **kwargs):
+        super().__init__(master, **kwargs)
+
+        self.dpf = dpf
+
+        #  create scroll bar
+        self.tree_scroll = ttk.Scrollbar(master=self)
+        self.tree_scroll.pack(side='right', fill='y')
+
+        # create treeview and set up treeview columns and theme
+        self.cols = ('Rank', 'ID', 'Symbol', 'Market Cap', 'Total Volume', '24h', 'Price' )
+        self.treeview = ttk.Treeview(master=self, show='headings', yscrollcommand=self.tree_scroll.set, columns=self.cols, height=100)
+        self.tree_scroll.config(command=self.treeview.yview)
+        self.set_tree_frame_theme(self.treeview)
+        self.set_treeview_data(self.treeview)
+
+    # apply Azure theme to tree_frame
+    def set_tree_frame_theme(self, treeview):
+        style = ttk.Style(self.treeview)
+        self.treeview.tk.call('source', 'Azure/azure.tcl')
+        self.treeview.tk.call('set_theme', 'dark')
+
+    # set up treeview column headings and load data
+    def set_treeview_data(self, treeview):
+        self.treeview = treeview
         self.treeview.heading('Rank', text='Rank', anchor=tk.W)
         self.treeview.heading('ID', text='ID', anchor=tk.W)
         self.treeview.heading('Symbol', text='Symbol', anchor=tk.W)
@@ -101,38 +176,27 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.treeview.column('Total Volume', width=150)
         self.treeview.column('24h', width=80)
         self.treeview.pack()
-        self.treeScroll.config(command=self.treeview.yview)
-        self.load_data()
 
-        # create background frame to host chart_frame - this allows for corner_radius to be applied
-        self.back_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color='#2B2B2B')
-        self.back_frame.grid_columnconfigure(0, weight=1)
-        self.back_frame.grid_rowconfigure(0, weight=1)
+        # load data into treeview
+        list = self.dpf.tree_view_data('usd',1,2)
+        for i in list:
+            self.treeview.insert('', tk.END, values=i)
 
-        # create graph frame
-        self.graph_frame = customtkinter.CTkFrame(master=self.back_frame, corner_radius=8, fg_color="#2B2B2B")
-        self.graph_frame.grid_columnconfigure(0, weight=1)
-        self.graph_frame.grid_rowconfigure(0, weight=1)
+
+class ChartFrame(customtkinter.CTkFrame):
+    def __init__(self, master, dpf, gf, **kwargs):
+        super().__init__(master, **kwargs)
 
         #print(plt.rcParams)
 
         # set plot theme for matplotlib
         with plt.rc_context({
-                            # 'figure.facecolor':'#2B2B2B',
-                            # 'axes.facecolor':'#2B2B2B',
-                            # 'xtick.color':'white',
-                            # 'ytick.color':'white',
-                            # 'axes.titlecolor':'white',
-                            # 'axes.labelcolor':'white',
-                            # 'axes.edgecolor':'#333333',
-                            # 'grid.color':'#333333',
-                            # 'axes.titlelocation':'left',
-                            # 'text.color': 'white',
                             'axes.labelpad': '8.0',
                             'font.size': '10.0',
                             'axes.xmargin': '0.1',
                             'axes.ymargin': '0.1',
                             'grid.linewidth': '1.5',
+                            'grid.color': '#F7F7F7',
                             'axes.linewidth': '1.5',
                             'xtick.major.width': '1.5',
                             'xtick.major.size': '4.0',
@@ -140,50 +204,17 @@ class Gui(customtkinter.CTk, GeckoFunctions):
                             'xtick.minor.size': '2.0',
                             'ytick.major.width': '1.5',
                             'ytick.major.size': '4.0',
-
                             }):
 
-            # create embedded matplotlib graph - graph_frame <- canvas <- fig <- ax
+            self.dpf = dpf
+            self.gf = gf
+
+            # create embedded matplotlib graph - window <-- home_frame <-- self <- canvas <- fig <- ax
             self.fig, self.ax = plt.subplots()
-            self.canvas = FigureCanvasTkAgg(self.fig, master=self.graph_frame)
-            self.plotGraph(self.ax, self.fig, self.canvas, self.gf, self.dpf)
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+            self.plotGraph(self.ax, self.fig, self.canvas, self.dpf, self.gf)
 
-        self.toplevel_toolbar_window = None
-
-        # select default frame
-        self.select_frame_by_name("home")
-
-    def select_frame_by_name(self, name):
-        # set button color for selected button
-        self.home_button.configure(fg_color=("gray75", "gray25") if name == "home" else "transparent")
-        self.graph_button.configure(fg_color=("gray75", "gray25") if name == "graph" else "transparent")
-
-        # show selected frame or frame and toplevel window
-        if name == "home":
-            self.home_frame.grid(row=0, column=1, padx=(0,15), pady=10, sticky="news")
-        else:
-            self.home_frame.grid_forget()
-        if name == "graph":
-            self.back_frame.grid(row=0, column=1, padx=(0,15), pady=15, sticky="nsew")
-            self.graph_frame.grid(row=0, column=0, padx=4, pady=4, sticky="nsew")
-            self.open_toplevel_graph_toolbar()
-        else:
-            self.back_frame.grid_forget()
-            self.graph_frame.grid_forget()
-
-    def graph_button_event(self):
-        self.select_frame_by_name("graph")
-
-    def home_button_event(self):
-        self.select_frame_by_name("home")
-
-    # loading data into treeview
-    def load_data(self):
-        list = self.dpf.tree_view_data('usd',1,2)
-        for i in list:
-            self.treeview.insert('', tk.END, values=i)
-
-    def plotGraph(self, ax, fig, canvas, gf, dpf):
+    def plotGraph(self, ax, fig, canvas, dpf, gf):
         data = gf.get_coin_data_days('bitcoin', 'usd', 10000)
         human_time, price = ([] for i in range(2))
         for i in data['prices']:
@@ -209,57 +240,7 @@ class Gui(customtkinter.CTk, GeckoFunctions):
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
 
-    def open_toplevel_graph_toolbar(self):
-        if self.toplevel_toolbar_window is None or not self.toplevel_toolbar_window.winfo_exists():
-            self.toplevel_toolbar_window = ToplevelGraphToolBar(self)  # create window if its None or destroyed
-        else:
-            self.toplevel_toolbar_window.focus()  # if window exists focus it
-
-    def on_closing_event(self):
-        print('on_closing_event ___________ destroyed self.window and initial window')
-        self.window.destroy()
-        self.destroy()
-        exit()
-        # "1968159393536check_dpi_scaling" on cmd after closing. This message was displayed when matplotlib graph was embedded.
-
-class ToplevelGraphToolBar(customtkinter.CTkToplevel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # configure grid
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(8, weight=1)
-
-        self.geometry("400x300")
-        self.title('Toolbar')
-
-        self.toolbar_frame = customtkinter.CTkLabel(master=self)
-        self.toolbar_frame.grid(row=0, column=0, sticky='news')
-
-        self.toolbarLabel = customtkinter.CTkLabel(self.toolbar_frame, text='Toolbar', anchor='center',
-                                        font=customtkinter.CTkFont(size=25, weight='bold'))
-        self.toolbarLabel.grid(row=0, column=0, sticky='news')
-
-        self.switch_var_yscale_on = customtkinter.StringVar(value="on")
-        self.switch_var_yscale_off = customtkinter.StringVar(value="off")
-        self.switch_yscale = customtkinter.CTkSwitch(master=self.toolbar_frame, text="Log", command=self.switch_yscale_event,
-                        variable=self.switch_var_yscale_on, onvalue="on", offvalue="off")
-        self.switch_yscale.grid(row=0, column=1, sticky='news')
-
-
-
-
-    def switch_yscale_event(self):
-        if self.switch_var_yscale_on.get() == 'on':
-            print('switch is on')
-            self.ax.set_yscale('log')
-        elif self.switch_var_yscale_off.get() == 'off':
-            print('switch if off')
-
-
-
 if __name__ == "__main__":
-    gui = Gui()
+    gui = App()
     gui.window.protocol("WM_DELETE_WINDOW", gui.on_closing_event)
     gui.mainloop()
