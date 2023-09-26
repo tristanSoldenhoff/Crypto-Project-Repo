@@ -10,7 +10,8 @@ passing data from multiple windows: will help with navigation frame:
 import tkinter as tk
 from tkinter import ttk
 import customtkinter
-import ctypes                                                                   # dots per inch awareness
+import ctypes
+import datetime                                                                 # dots per inch awareness
 from my_functions import MyFunctions
 from gecko_functions import GeckoFunctions
 from data_processing_functions import DataProcessingFunctions
@@ -54,9 +55,6 @@ class App(customtkinter.CTk, GeckoFunctions):
         # create navigation frame
         self.navigation_frame = NavigationFrame(master=self.window, select_frame_by_name=self.select_frame_by_name)
 
-        # create toolbar frame
-        self.toolbar_frame = ToolBarFrame(master=self.window)
-
         # create home frame:    window <-- home_frame <-- tree_frame OR chart_frame
         self.home_frame = customtkinter.CTkFrame(master=self.window, corner_radius=8, fg_color=('gray70', 'gray17'))
         self.home_frame.grid(row=0, column=1, rowspan=2, padx=(7.5 ,15), pady=15, sticky="news")
@@ -69,14 +67,16 @@ class App(customtkinter.CTk, GeckoFunctions):
         # create price chart:  home_frame <-- chart_frame
         self.chart_frame = ChartFrame(master=self.home_frame, dpf=self.dpf, gf=self.gf)
 
+        # create toolbar frame
+        self.toolbar_frame = ToolBarFrame(master=self.window, chart_frame=self.chart_frame)
+
         # select default frame
         self.select_frame_by_name("treeview", self.navigation_frame)
 
     # show navigation_frame + treeview  OR  navigation_frame + toolbar_frame + chart_frame
-    def select_frame_by_name(self, name, *args):
+    def select_frame_by_name(self, name, navigation_frame=None):
 
         # set button color for selected button
-        navigation_frame = args[0]
         navigation_frame.treeview_button.configure(fg_color=("gray75", "gray25") if name == "treeview" else "transparent")
         navigation_frame.chart_button.configure(fg_color=("gray75", "gray25") if name == "chart" else "transparent")
 
@@ -126,15 +126,39 @@ class NavigationFrame(customtkinter.CTkFrame):
 
 
 class ToolBarFrame(customtkinter.CTkFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, chart_frame, **kwargs):
         super().__init__(master, **kwargs)
 
-        self.grid_columnconfigure(0, weight=1)
+        self.chart_frame = chart_frame
+
+        self.grid_columnconfigure((0,1), weight=1)
         self.grid_rowconfigure(10, weight=1)
 
         self.toolbar_frame_label = customtkinter.CTkLabel(self, text='Toolbar', anchor='center',
                                         font=customtkinter.CTkFont(size=25, weight='bold'))
-        self.toolbar_frame_label.grid(row=0, column=0, padx=20, pady=20, sticky='news')
+        self.toolbar_frame_label.grid(row=0, column=0, columnspan=2, padx=20, pady=20, sticky='news')
+
+        self.log_var = customtkinter.StringVar(value="off")
+        self.switch_yscale = customtkinter.CTkSwitch(master=self, text="Log", command=self.switch_yscale_event,
+                        variable=self.log_var, onvalue="on", offvalue="off")
+        self.switch_yscale.grid(row=1, column=0, sticky='news')
+
+        self.halving_var = customtkinter.StringVar(value="off")
+        self.btc_halving_dates_checkbox = customtkinter.CTkCheckBox(master=self, text='Halving', command=self.show_halving_events,
+                                        variable=self.halving_var, onvalue='on', offvalue='off')
+        self.btc_halving_dates_checkbox.grid(row=1, column=1, stick='news')
+
+    def switch_yscale_event(self):
+        if self.log_var.get() == 'on':
+            self.chart_frame.log_scale()
+        elif self.log_var.get() == 'off':
+            self.chart_frame.linear_scale()
+
+    def show_halving_events(self):
+        if self.halving_var.get() == 'on':
+            self.chart_frame.show_halving_events()
+        else:
+            self.chart_frame.remove_halving_events()
 
 
 class TreeFrame(customtkinter.CTkFrame):
@@ -188,7 +212,6 @@ class ChartFrame(customtkinter.CTkFrame):
         super().__init__(master, **kwargs)
 
         #print(plt.rcParams)
-
         # set plot theme for matplotlib
         with plt.rc_context({
                             'axes.labelpad': '8.0',
@@ -209,12 +232,14 @@ class ChartFrame(customtkinter.CTkFrame):
             self.dpf = dpf
             self.gf = gf
 
+            self.test = 'text from chart class'
+
             # create embedded matplotlib graph - window <-- home_frame <-- self <- canvas <- fig <- ax
             self.fig, self.ax = plt.subplots()
             self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-            self.plotGraph(self.ax, self.fig, self.canvas, self.dpf, self.gf)
+            self.plot_graph(self.ax, self.fig, self.canvas, self.dpf, self.gf)
 
-    def plotGraph(self, ax, fig, canvas, dpf, gf):
+    def plot_graph(self, ax, fig, canvas, dpf, gf):
         data = gf.get_coin_data_days('bitcoin', 'usd', 10000)
         human_time, price = ([] for i in range(2))
         for i in data['prices']:
@@ -224,7 +249,6 @@ class ChartFrame(customtkinter.CTkFrame):
         self.ax.set_ylabel(r'Price [\$]')
 
         self.ax.plot(human_time, price)
-        #ax.set_yscale('log')
         self.ax.grid(visible=True, which='major', axis='both')
 
         # Major ticks every half year, minor ticks every month,
@@ -239,8 +263,28 @@ class ChartFrame(customtkinter.CTkFrame):
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+    def log_scale(self):
+        self.ax.set_yscale('log')
+        self.canvas.draw()
+
+    def linear_scale(self):
+        self.ax.set_yscale('linear')
+        self.canvas.draw()
+
+    def show_halving_events(self):
+        self.vert_line_list = []
+        for i in self.dpf.btc_halving_dates():
+            self.vert_line_list.append(self.ax.axvline(i))
+        self.canvas.draw()
+
+    def remove_halving_events(self):
+        for i in self.vert_line_list:
+            i.remove()
+        self.canvas.draw()
+
+
 
 if __name__ == "__main__":
-    gui = App()
-    gui.window.protocol("WM_DELETE_WINDOW", gui.on_closing_event)
-    gui.mainloop()
+    app = App()
+    app.window.protocol("WM_DELETE_WINDOW", app.on_closing_event)
+    app.mainloop()
