@@ -138,9 +138,9 @@ class ToolBarFrame(customtkinter.CTkFrame):
                                         font=customtkinter.CTkFont(size=25, weight='bold'))
         self.toolbar_frame_label.grid(row=0, column=0, columnspan=2, padx=20, pady=20, sticky='news')
 
-        self.log_var = customtkinter.StringVar(value="off")
+        self.log_var = customtkinter.StringVar(value="linear")
         self.switch_yscale = customtkinter.CTkSwitch(master=self, text="Log", command=self.switch_yscale_event,
-                        variable=self.log_var, onvalue="on", offvalue="off")
+                        variable=self.log_var, onvalue="log", offvalue="linear")
         self.switch_yscale.grid(row=1, column=0, sticky='news')
 
         self.halving_var = customtkinter.StringVar(value="off")
@@ -149,14 +149,14 @@ class ToolBarFrame(customtkinter.CTkFrame):
         self.btc_halving_dates_checkbox.grid(row=1, column=1, stick='news')
 
     def switch_yscale_event(self):
-        if self.log_var.get() == 'on':
+        if self.log_var.get() == 'log':
             self.chart_frame.log_scale()
-        elif self.log_var.get() == 'off':
+        else:
             self.chart_frame.linear_scale()
 
     def show_halving_events(self):
         if self.halving_var.get() == 'on':
-            self.chart_frame.show_halving_events()
+            self.chart_frame.show_halving_events(scale_mode=self.log_var.get())
         else:
             self.chart_frame.remove_halving_events()
 
@@ -229,10 +229,9 @@ class ChartFrame(customtkinter.CTkFrame):
                             'ytick.major.size': '4.0',
                             }):
 
+            # access crypto data and functions
             self.dpf = dpf
             self.gf = gf
-
-            self.test = 'text from chart class'
 
             # create embedded matplotlib graph - window <-- home_frame <-- self <- canvas <- fig <- ax
             self.fig, self.ax = plt.subplots()
@@ -240,23 +239,21 @@ class ChartFrame(customtkinter.CTkFrame):
             self.plot_graph(self.ax, self.fig, self.canvas, self.dpf, self.gf)
 
     def plot_graph(self, ax, fig, canvas, dpf, gf):
+
         data = gf.get_coin_data_days('bitcoin', 'usd', 10000)
         human_time, price = ([] for i in range(2))
         for i in data['prices']:
             human_time.append(dpf.human_time(i[0]))
             price.append(i[1])
+
         self.ax.title.set_text('Bitcoin')
         self.ax.set_ylabel(r'Price [\$]')
-
         self.ax.plot(human_time, price)
         self.ax.grid(visible=True, which='major', axis='both')
 
-        # Major ticks every half year, minor ticks every month,
+        # Major ticks every year, minor ticks every month,
         self.ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1)))
         self.ax.xaxis.set_minor_locator(mdates.MonthLocator())
-
-        self.ax.set_title('Manual DateFormatter', loc='left', y=0.85, x=0.02, fontsize='medium')
-
         # Text in the x-axis will be displayed in 'YYYY' format.
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
 
@@ -271,17 +268,35 @@ class ChartFrame(customtkinter.CTkFrame):
         self.ax.set_yscale('linear')
         self.canvas.draw()
 
-    def show_halving_events(self):
+    def show_halving_events(self, scale_mode=None):
+
         self.vert_line_list = []
+        self.vert_line_label = []
+
+        # draw vertical line on btc halving event date
         for i in self.dpf.btc_halving_dates():
-            self.vert_line_list.append(self.ax.axvline(i))
+            self.vert_line_list.append(self.ax.axvline(i, color='black', linestyle='--'))
+
+        # add date labels for linear chart
+        if scale_mode == 'linear':
+            for i in self.dpf.btc_halving_dates():
+                self.vert_line_label.append(self.ax.text((i - datetime.timedelta(days=60)),
+                                    self.ax.get_ylim()[1] - self.ax.get_ylim()[1]*0.25, i.strftime('%Y-%m-%d'), rotation=90))
+        # add date labels for log chart
+        if scale_mode == 'log':
+            for i in self.dpf.btc_halving_dates():
+                self.vert_line_label.append(self.ax.text((i - datetime.timedelta(days=60)),
+                                    self.ax.get_ylim()[1] - self.ax.get_ylim()[1]*0.80, i.strftime('%Y-%m-%d'), rotation=90))
+
         self.canvas.draw()
+
 
     def remove_halving_events(self):
         for i in self.vert_line_list:
             i.remove()
+        for i in self.vert_line_label:
+            i.set_visible(False)
         self.canvas.draw()
-
 
 
 if __name__ == "__main__":

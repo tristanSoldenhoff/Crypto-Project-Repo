@@ -9,7 +9,7 @@ import time
 class DataProcessingFunctions(GeckoFunctions):
 
     def btc_halving_dates(self):
-        dates_list = ['2012/11/28', '2016/07/09', '2020/05/11', '2024/04/25']
+        dates_list = ['2012/11/28', '2016/07/09', '2020/05/11', '2024/04/17']
         halving_datetime = []
         for i in dates_list:
             halving_datetime.append(datetime.datetime.strptime(i, '%Y/%m/%d'))
